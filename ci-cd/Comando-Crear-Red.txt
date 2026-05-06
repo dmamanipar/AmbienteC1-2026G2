@@ -1,0 +1,12 @@
+#Crear DNS:
+192.168.1.33 asistencia.edu.pe
+192.168.1.33 docker.jenkins
+192.168.1.33 docker.sonar
+192.168.1.33 docker.tomcat
+192.168.1.33 docker.mysql
+
+# Desde terminal WSL, una sola vez
+docker network create network_jenkins
+
+# Verificar que existe
+docker network ls | grep network_jenkins

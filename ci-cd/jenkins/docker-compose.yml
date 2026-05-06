@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  jenkins:
+    container_name: jenkins
+    build: .
+    user: root
+    ports:
+      - "9080:8080"
+      - "50000:50000"
+    volumes:
+      - ./jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock   # ← funciona igual en WSL
+    environment:
+      - TESTCONTAINERS_CHECKS_DISABLE=true
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - TESTCONTAINERS_RYUK_DISABLED=true            # ← importante en WSL
+      # Testcontainers necesita saber el host real para exponer puertos
+      - TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal
+    networks:
+      - default
+
+networks:
+  default:
+    name: network_jenkins
+    external: true

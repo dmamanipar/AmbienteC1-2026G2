@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  tomcat:
+    image: tomcat:11.0-jdk17
+    container_name: tomcat-psd
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./tomcat_conf:/usr/local/tomcat/conf
+      - ./webapps:/usr/local/tomcat/webapps
+      - ./apps:/usr/local/tomcat/webapps-external
+      - ./tomcat_logs:/usr/local/tomcat/logs
+      - ./lib:/usr/local/tomcat/lib
+    environment:
+      - DB_HOST=mysql-psd 
+      - DB_PORT=3306
+      - DB_NAME=sysalmacen_db
+      - DB_USER=admin
+      - DB_PASSWORD=password
+      - CATALINA_OPTS=-Djava.security.egd=file:/dev/./urandom -Djava.awt.headless=true
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    command: >
+      bash -c "
+        echo '=== Iniciando configuración del contenedor Tomcat ===';
+        if [ -z \"$(ls -A /usr/local/tomcat/lib 2>/dev/null)\" ]; then
+          echo 'Copiando librerías base de Tomcat al volumen local...';
+          if [ -d /usr/local/tomcat/lib.dist ]; then
+            cp -r /usr/local/tomcat/lib.dist/* /usr/local/tomcat/lib/;
+          else
+            cp -r /usr/local/tomcat/lib/* /usr/local/tomcat/lib/ 2>/dev/null || true;
+          fi;
+        else
+          echo 'Librerías del volumen ./lib ya existentes, no se sobrescriben.';
+        fi;
+        if [ ! -d '/usr/local/tomcat/webapps/ROOT' ]; then
+          echo 'Copiando aplicaciones predeterminadas...';
+          cp -r /usr/local/tomcat/webapps.dist/* /usr/local/tomcat/webapps/;
+        fi;
+        if ls /usr/local/tomcat/webapps-external/*.war 1> /dev/null 2>&1; then
+          echo 'Copiando archivos WAR...';
+          cp -v /usr/local/tomcat/webapps-external/*.war /usr/local/tomcat/webapps/;
+          chmod 755 /usr/local/tomcat/webapps/*.war;
+        else
+          echo 'No se encontraron archivos WAR para copiar.';
+        fi;
+        echo '=== Iniciando Tomcat... ===';
+        exec catalina.sh run
+      "
+    restart: unless-stopped
+    networks:
+      - default
+
+networks:
+  default:
+    name: network_jenkins
+    external: true
